@@ -11,7 +11,7 @@ else:
 import random
 import torch
 import torch.utils.data as data
-from utils import download_url, check_integrity, TransformTwice, RandomTranslateWithReflect
+from data.utils import download_url, check_integrity, TransformTwice, RandomTranslateWithReflect
 import torchvision.transforms as transforms
 
 
@@ -53,9 +53,9 @@ class CIFAR10(data.Dataset):
         'md5': '5ff9c542aee3614f3951f8cda6e48888',
     }
 
-    def __init__(self, root, split='train+test', labeled=True, 
+    def __init__(self, root, split='train+test', labeled=True,
                  transform=None, target_transform=None,
-                 download=False, labeled_list = [0, 1, 2, 3, 4], unlabeled_list=[5, 6, 7, 8, 9]):
+                 download=True, labeled_list = [0, 1, 2, 3, 4], unlabeled_list=[5, 6, 7, 8, 9]):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
@@ -95,16 +95,16 @@ class CIFAR10(data.Dataset):
         self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
         self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
         self._load_meta()
-        
+
         if labeled:
             ind = [i for i in range(len(self.targets)) if self.targets[i] in labeled_list]
         else:
             ind = [i for i in range(len(self.targets)) if self.targets[i] in unlabeled_list]
-        
+
         self.data = self.data[ind]
         self.targets = np.array(self.targets)
         self.targets = self.targets[ind].tolist()
-           
+
     def _load_meta(self):
         path = os.path.join(self.root, self.base_folder, self.meta['filename'])
         if not check_integrity(path, self.meta['md5']):
@@ -206,14 +206,14 @@ def CIFAR10Loader(root, batch_size, split='train', num_workers=2, labeled = True
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])  
+        ])
     elif aug == 'once':
         transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])  
+        ])
     elif aug == 'twice':
         transform = TransformTwice(transforms.Compose([
             RandomTranslateWithReflect(4),
@@ -231,14 +231,14 @@ def CIFAR100Loader(root, batch_size, split='train', num_workers=2, labeled = Tru
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.507, 0.487, 0.441), (0.267, 0.256, 0.276)),
-        ])  
+        ])
     elif aug == 'once':
         transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.507, 0.487, 0.441), (0.267, 0.256, 0.276)),
-        ])  
+        ])
     elif aug == 'twice':
         transform = TransformTwice(transforms.Compose([
             RandomTranslateWithReflect(4),
@@ -282,4 +282,3 @@ if __name__ == "__main__":
     print('target', target)
     out = torchvision.utils.make_grid(img)
     show_batch(out, title=target)
-
