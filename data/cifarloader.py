@@ -55,7 +55,7 @@ class CIFAR10(data.Dataset):
 
     def __init__(self, root, split='train+test', labeled=True,
                  transform=None, target_transform=None,
-                 download=True, labeled_list = [0, 1, 2, 3, 4], unlabeled_list=[5, 6, 7, 8, 9]):
+                 download=False, labeled_list = [0, 1, 2, 3, 4], unlabeled_list=[5, 6, 7, 8, 9]):
         self.root = os.path.expanduser(root)
         self.transform = transform
         self.target_transform = target_transform
@@ -226,6 +226,31 @@ def CIFAR10Loader(root, batch_size, split='train', num_workers=2, labeled = True
     loader = data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
     return loader
 
+def CIFAR10Loader_VAE(root, batch_size, split='train', num_workers=2, labeled = True, aug=None,  shuffle=True):
+    if aug == None:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+    elif aug == 'once':
+        transform = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+    elif aug == 'twice':
+        transform = TransformTwice(transforms.Compose([
+            RandomTranslateWithReflect(4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ]))
+
+    dataset = CIFAR10(root=root, split=split, labeled=labeled, transform=transform)
+    loader = data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
+    return loader
+
 def CIFAR100Loader(root, batch_size, split='train', num_workers=2, labeled = True, shuffle=True, aug=None, mode = '80_10'):
     if aug == None:
         transform = transforms.Compose([
@@ -271,14 +296,17 @@ if __name__ == "__main__":
     import torchvision
     from torchvision import datasets, transforms
     #  from collections import Counter
-    image_dataset_root = './data/data_shallow14/datasets/CIFAR'
+    image_dataset_root = '../data/datasets/CIFAR'
     #  dataloader_train = CIFAR100CropLoader(image_dataset_root, batch_size=8, labeled=False, crop=True)
-    dataloader_train = CIFAR10Loader(image_dataset_root, batch_size=8, labeled=False)
+    dataloader_train = CIFAR10Loader_VAE(image_dataset_root, batch_size=8, labeled=False)
     img, target,idx = next(iter(dataloader_train))
     #  img = img.view(-1, img.size(2), img.size(3), img.size(4))
+    print(type(img))
+    print(torch.max(img))
+    print(torch.min(img))
 
-    dataset = CIFAR10(root=image_dataset_root, split='train', labeled=True, transform=None, labeled_list=range(5), unlabeled_list=range(5, 10))
-    img, _, _ = dataset[0]
-    print('target', target)
-    out = torchvision.utils.make_grid(img)
-    show_batch(out, title=target)
+    # dataset = CIFAR10(root=image_dataset_root, split='train', labeled=True, transform=None, labeled_list=range(5), unlabeled_list=range(5, 10))
+    # img, _, _ = dataset[0]
+    # print('target', target)
+    # out = torchvision.utils.make_grid(img)
+    # show_batch(out, title=target)
